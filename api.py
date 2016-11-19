@@ -1,60 +1,92 @@
-import json
+import websocket
 import urllib
-
+import json
 import time
 import hashlib
-import hmac
 import base64
+import hmac
+import os
+import ssl
 
-import connection
+### TODO ###
+# options, --test, --ping etc...
+# log info/error/debug
+# options avec timestamps
+# factoriser les options send
 
 class API(object):
 
     def __init__(self, keyFile):
+        #websocket.enableTrace(True)
+        self.ws_ = websocket.WebSocket(sslopt={"cert_reqs": ssl.CERT_NONE})
+        #self.ws_.connect("wss://test.deribit.com/ws/api/v1/")
+        self.ws_.connect("wss://www.deribit.com/ws/api/v1/")
         self.load_key(keyFile)
-        self.uri = 'https://test.deribit.com/api'
-        self.apiversion = 'v1'
-        self.conn = None
+        self.id_ = 0
+
+    def ping(self):
+        print ("==========")
+        print ("= PING ? =")
+        print ("==========")
+        t1 = time.time()
+        self.send_public("ping")
+        res = api.receive()
+        t2 = time.time()
+        if "result" in res and res["result"] == "pong":
+            print ("==========")
+            print ("= PONG ! =")
+            print ("==========")
+            print ("It took %.0fms rtt" % ((t2 - t1) * 1000))
+        else:
+            print ("ERROR:")
+            print (res)
 
     def load_key(self, path):
         f = open(path, "r")
-        self.key = f.readline().strip()
-        self.secret = f.readline().strip()
+        self.key_ = f.readline().strip()
+        self.secret_ = f.readline().strip()
+        f.close()
 
-    def _query(self, urlpath, req = {}, headers = {}):
-        url = self.uri + urlpath
+    def send_public(self, action):
+        req = { "id"    : self.id_,
+                "action": "/api/v1/public/" + action,
+            }
+        req = json.dumps(req)
+        self.ws_.send(req)
+        self.id_ += 1
 
-        if self.conn is None:
-            print "Establishing a new connection"
-            self.conn = connection.Connection("test.deribit.com", timeout=3600) # socket opened for 1 hour
+    def encode_signature(self, action):
+        nonce = str(int(time.time() * 1000))
+        sig = "_=%s&_ackey=%s&_acsec=%s&_action=%s" % (nonce, self.key_, self.secret_, action)
+        h = hashlib.new("sha256", sig)
+        sig = h.digest()
+        sig = base64.b64encode(sig)
+        return "%s.%s.%s" % (self.key_, nonce, sig)
 
-        print "URL=%s"%url
-        ret = self.conn._request(url, req, headers)
-        return json.loads(ret)
+    def send_private(self, action):
+        signature = self.encode_signature("/api/v1/private/" + action)
+        req = { "id"            : self.id_,
+                "action"        : "/api/v1/private/" + action,
+                "arguments"     : {},
+                "sig"           : signature,
+            }
+        req = json.dumps(req, ensure_ascii=False)
+        self.ws_.send(req)
+        self.id_ += 1
+
+    def receive(self):
+        result = self.ws_.recv()
+        return json.loads(result)
+
+    def close(self):
+        self.ws_.close()
+
+if __name__ == "__main__":
+    api = API("key.txt")
     
-    def query_public(self, method, req = {}):
-        urlpath = '/' + self.apiversion + '/public/' + method
+    api.ping()
 
-        return self._query(urlpath, req)
-    
-    def query_private(self, method, req={}):
-        urlpath = '/' + self.apiversion + '/private/' + method
+    api.send_private("account")
+    print (api.receive())
 
-#        req['nonce'] = int(1000*time.time())
-#        postdata = urllib.urlencode(req)
-#        message = urlpath + hashlib.sha256(str(req['nonce']) +
-#                                           postdata).digest()
-#        signature = hmac.new(base64.b64decode(self.secret),
-#                             message, hashlib.sha512)
-        nonce = str(int(1000*time.time()))
-        header = "_=%s&_ackey=%s&_acsec=%s&_action=%s" % (nonce, self.key, self.secret, urlpath)
-        header = hashlib.sha256(header)
-        header = base64.b64encode(str(header))
-        header = self.key + "." + nonce + "." + header
-        print header
-
-        headers = {
-            'x-deribit-sig': header
-        }
-
-        return self._query(urlpath, req, headers)
+    api.close()
