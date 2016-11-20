@@ -13,13 +13,14 @@ import ssl
 # log info/error/debug
 # options avec timestamps
 # factoriser les options send
+# getId() with a reset to 0
 
 class API(object):
 
     def __init__(self, keyFile):
-        #websocket.enableTrace(True)
+        websocket.enableTrace(True)
         self.ws_ = websocket.WebSocket(sslopt={"cert_reqs": ssl.CERT_NONE})
-        #self.ws_.connect("wss://test.deribit.com/ws/api/v1/")
+#        self.ws_.connect("wss://test.deribit.com/ws/api/v1/")
         self.ws_.connect("wss://www.deribit.com/ws/api/v1/")
         self.load_key(keyFile)
         self.id_ = 0
@@ -36,7 +37,8 @@ class API(object):
             print ("==========")
             print ("= PONG ! =")
             print ("==========")
-            print ("It took %.0fms rtt" % ((t2 - t1) * 1000))
+
+            print ("It took %.1fms rtt" % ((t2 - t1) * 1000))
         else:
             print ("ERROR:")
             print (res)
@@ -47,30 +49,35 @@ class API(object):
         self.secret_ = f.readline().strip()
         f.close()
 
-    def send_public(self, action):
-        req = { "id"    : self.id_,
-                "action": "/api/v1/public/" + action,
+    def send_public(self, action, arguments = {}):
+        req = { "id"            : self.id_,
+                "action"        : "/api/v1/public/" + action,
+                "arguments"     : arguments,
             }
         req = json.dumps(req)
         self.ws_.send(req)
         self.id_ += 1
 
-    def encode_signature(self, action):
+    def encode_signature(self, action, arguments):
         nonce = str(int(time.time() * 1000))
         sig = "_=%s&_ackey=%s&_acsec=%s&_action=%s" % (nonce, self.key_, self.secret_, action)
+        for key in sorted(arguments.keys()):
+            sig += "&%s=%s" % (key, "".join(arguments[key]))
+        print sig
         h = hashlib.new("sha256", sig)
         sig = h.digest()
         sig = base64.b64encode(sig)
         return "%s.%s.%s" % (self.key_, nonce, sig)
 
-    def send_private(self, action):
-        signature = self.encode_signature("/api/v1/private/" + action)
+    def send_private(self, action, arguments = {}):
+        signature = self.encode_signature("/api/v1/private/" + action, arguments)
         req = { "id"            : self.id_,
                 "action"        : "/api/v1/private/" + action,
-                "arguments"     : {},
+                "arguments"     : arguments,
                 "sig"           : signature,
             }
         req = json.dumps(req, ensure_ascii=False)
+        print req
         self.ws_.send(req)
         self.id_ += 1
 
@@ -86,7 +93,9 @@ if __name__ == "__main__":
     
     api.ping()
 
+    print "=========="
     api.send_private("account")
-    print (api.receive())
+    for key, value in api.receive()["result"].iteritems():
+        print "%s : %s" % (key, value)
 
     api.close()
