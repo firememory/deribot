@@ -10,13 +10,6 @@ import ssl
 import threading
 from time import sleep
 
-### TODO ###
-# options, --test, --ping etc...
-# log info/error/debug
-# options avec timestamps
-# factoriser les options send
-# getId() with a reset to 0
-
 KEEP_ALIVE_TIMEOUT = 10
 
 class API(object):

@@ -1,8 +1,9 @@
 from api import API
 from optparse import OptionParser
 from time import sleep, time
-#from sys.stdout import flush
 import sys
+from datetime import datetime
+import os
 
 class Recorder(object):
     def __init__(self, verbose=False):
@@ -16,25 +17,35 @@ class Recorder(object):
             print "%s\t%s" % (instr["instrumentName"], instr["kind"])
 
     def writeUpdate(self, ts, update):
-        print "update=%s"%update
         instr = update["result"]["instrument"]
         if instr not in self.book.keys():
             self.book[instr] = {}
-        recvTime = time() * 100
+
+        recvTime = time()
+        today = datetime.fromtimestamp(recvTime).strftime("%Y%m%d")
+        if today != self.today:
+            self.fout = self.getFileDesc(today)
+        recvTime = int(recvTime * 100)
+
         for bidUpdate in update["result"]["bids"]:
             prcUpdate = bidUpdate["price"]
             qtyUpdate = bidUpdate["quantity"]
             if prcUpdate not in self.book[instr].keys() or self.book[instr][prcUpdate] != qtyUpdate:
                 self.book[instr][prcUpdate] = qtyUpdate
-#                print instr, "B", prcUpdate, qtyUpdate
-                self.fout.write("%s;%s;%s;B;%s;%s\n" % (ts, recvTime, instr, prcUpdate, qtyUpdate))
+                self.fout.write("%s;%s;%s;B;%s;%s\n" % (ts, recvTime, instr, qtyUpdate, prcUpdate))
+
         for askUpdate in update["result"]["asks"]:
             prcUpdate = askUpdate["price"]
             qtyUpdate = askUpdate["quantity"]
             if prcUpdate not in self.book[instr].keys() or self.book[instr][prcUpdate] != qtyUpdate:
                 self.book[instr][prcUpdate] = qtyUpdate
-#                print instr, "S", prcUpdate, qtyUpdate
-                self.fout.write("%s;%s;%s;S;%s;%s\n" % (ts, recvTime, instr, prcUpdate, qtyUpdate))
+                self.fout.write("%s;%s;%s;S;%s;%s\n" % (ts, recvTime, instr, qtyUpdate, prcUpdate))
+
+        ltp = update["result"]["last"]
+        if "ltp" in self.book[instr].keys() and self.book[instr]["ltp"] != ltp:
+            self.fout.write("%s;%s;%s;T;%s;%s\n" % (ts, recvTime, instr, 0, ltp)) # qty unknown ?
+        self.book[instr]["ltp"] = ltp
+
         self.fout.flush()
 
     def onOpen(self, api):
@@ -48,8 +59,16 @@ class Recorder(object):
         else:
             print "ERROR: not a notification: %s" % message
 
+    def getFileDesc(self, date=None):
+        if hasattr(self, "fout"):
+            self.fout.close()
+        self.today = date or datetime.now().strftime("%Y%m%d")
+        fileName = "%s/quotes/deribit.%s.csv" % (os.getenv("HOME"), self.today)
+        print "Opening %s" % fileName
+        return open(fileName, "w+")
+
     def start(self, instr):
-        self.fout = open("/home/renaud/quotes/deribit.csv", "w+")
+        self.fout = self.getFileDesc()
         self.book = {}
         self.instr = instr
         self.api = API("key.txt", self, self.verbose)
