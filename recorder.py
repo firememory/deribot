@@ -25,7 +25,7 @@ class Recorder(object):
         today = datetime.fromtimestamp(recvTime).strftime("%Y%m%d")
         if today != self.today:
             self.fout = self.getFileDesc(today)
-        recvTime = int(recvTime * 100)
+        recvTime = int(recvTime * 1000)
 
         for bidUpdate in update["result"]["bids"]:
             prcUpdate = bidUpdate["price"]
