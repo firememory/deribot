@@ -1,6 +1,8 @@
 #ifndef _RECORDER_H_
  #define _RECORDER_H_
 
+#include <atomic>
+
 #include "quickfix/FileStore.h"
 #include "quickfix/FileLog.h"
 #include "quickfix/SocketAcceptor.h"
@@ -21,6 +23,11 @@ public:
     throw (FIX::FieldNotFound, FIX::IncorrectDataFormat, FIX::IncorrectTagValue, FIX::RejectLogon);
   void fromApp(const FIX::Message& msg, const FIX::SessionID& id)
     throw (FIX::FieldNotFound, FIX::IncorrectDataFormat, FIX::IncorrectTagValue, FIX::UnsupportedMessageType);
+
+//   std::atomic<bool> isRunning() { return isRunning_; };
+
+// private:
+//   std::atomic<bool> isRunning_;
 };
 
 #endif // _RECORDER_H_
