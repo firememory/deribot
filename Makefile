@@ -1,13 +1,14 @@
-CC=g++
-CFLAGS=-W -Wall -fexceptions -finline-functions -lquickfix
+CXX=g++
+CPPFLAGS=-W -Wall -fexceptions -finline-functions -lquickfix -std=c++11
 DEPS = recorder.h
-OBJ = recorder.cpp
+SRCS = recorder.cpp sha256.cpp base64.cpp
+OBJS = $(subst .cpp,.o,$(SRCS))
 
-%.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+%.o: %.cpp $(DEPS)
+	$(CXX) -c -o $@ $< $(CPPFLAGS)
 
-recorder: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS)
+recorder: $(OBJS)
+	$(CXX) -o $@ $(OBJS) $(CPPFLAGS)
 
 all: recorder
 
