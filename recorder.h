@@ -1,7 +1,5 @@
 #ifndef _RECORDER_H_
- #define _RECORDER_H_
-
-#include <atomic>
+#define _RECORDER_H_
 
 #include "quickfix/FileStore.h"
 #include "quickfix/FileLog.h"
@@ -24,10 +22,10 @@ public:
   void fromApp(const FIX::Message& msg, const FIX::SessionID& id)
     throw (FIX::FieldNotFound, FIX::IncorrectDataFormat, FIX::IncorrectTagValue, FIX::UnsupportedMessageType);
 
-//   std::atomic<bool> isRunning() { return isRunning_; };
+  bool isRunning() { return isRunning_; };
 
-// private:
-//   std::atomic<bool> isRunning_;
+private:
+  bool isRunning_;
 };
 
 #endif // _RECORDER_H_
