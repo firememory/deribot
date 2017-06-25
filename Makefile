@@ -1,3 +1,5 @@
+#include quickfix/Makefile
+
 CXX=g++-4.9
 CPPFLAGS=-W -Wall -fexceptions -finline-functions -std=c++11 -Iquickfix/include -Wno-ignored-qualifiers -Wno-unused-parameter -Wno-missing-field-initializers
 LDFLAGS=-L./quickfix/src/C++/.libs/ -lquickfix -lcrypto
