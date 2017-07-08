@@ -22,7 +22,6 @@ public:
     throw (FIX::FieldNotFound, FIX::IncorrectDataFormat, FIX::IncorrectTagValue, FIX::RejectLogon);
   void fromApp(const FIX::Message& msg, const FIX::SessionID& id)
     throw (FIX::FieldNotFound, FIX::IncorrectDataFormat, FIX::IncorrectTagValue, FIX::UnsupportedMessageType);
-  void onMessage(const FIX::Message& msg, const FIX::SessionID& id);
 
   bool isRunning() { return isRunning_; };
   FIX::SessionID& sessionId() { return sessionId_; };

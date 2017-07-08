@@ -22,7 +22,8 @@ Recorder::Recorder() :
 void Recorder::show(const FIX::Message& msg)
 {
   const char *s = msg.toString().c_str();
-  for (unsigned i = 0; i < strlen(s) - 1; ++i)
+  std::cout << Tools().now_str() << " ";
+  for (unsigned i = 0; i < msg.toString().length() - 1; ++i)
     std::cout << ((s[i] == 1) ? '|' : s[i]);
   std::cout << std::endl;
 }
@@ -70,7 +71,7 @@ void Recorder::toAdmin(FIX::Message& msg, const FIX::SessionID& id)
       msg.setField(FIX::Username(key));
       msg.setField(FIX::Password(signature));
     }
-  show(msg.toString());
+  show(msg);
 }
 
 
@@ -97,13 +98,6 @@ void Recorder::fromApp(const FIX::Message& msg, const FIX::SessionID& id)
   std::cout << "Recorder::fromApp" << std::endl;
   show(msg);
   //  crack(msg, id);
-}
-
-
-void Recorder::onMessage(const FIX::Message& msg, const FIX::SessionID& id)
-{
-  std::cout << "Recorder::onMessage" << std::endl;
-  show(msg);
 }
 
 int main(int argc, char **argv)
